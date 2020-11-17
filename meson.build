@@ -456,7 +456,6 @@ inc = include_directories(
     'Xi',
     'composite',
     'damageext',
-    'exa',
     'fb',
     'glamor',
     'mi',
