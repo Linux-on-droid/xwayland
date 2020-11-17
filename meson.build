@@ -452,7 +452,6 @@ inc = include_directories(
     'glamor',
     'mi',
     'miext/damage',
-    'miext/shadow',
     'miext/sync',
     'dbe',
     'dix',
@@ -558,7 +557,6 @@ subdir('composite')
 subdir('damageext')
 subdir('dbe')
 subdir('miext/damage')
-subdir('miext/shadow')
 subdir('miext/sync')
 subdir('present')
 subdir('randr')
