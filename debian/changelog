@@ -1,0 +1,5 @@
+xwayland (21.0.99.1~git20210204-1) UNRELEASED; urgency=medium
+
+  * Initial release. (Closes: #981841)
+
+ -- Timo Aaltonen <tjaalton@debian.org>  Tue, 01 Dec 2020 09:43:58 +0200
