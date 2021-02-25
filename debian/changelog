@@ -1,4 +1,4 @@
-xwayland (21.0.99.1~git20210204-1) UNRELEASED; urgency=medium
+xwayland (21.0.99.901-1) UNRELEASED; urgency=medium
 
   * Initial release. (Closes: #981841)
 
