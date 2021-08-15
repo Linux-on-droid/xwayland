@@ -1,5 +1,5 @@
-xwayland (2:21.1.2-1) UNRELEASED; urgency=medium
+xwayland (2:21.1.2-1) unstable; urgency=medium
 
-  * Initial release. (Closes: #981841)
+  * Initial release. (Closes: #981841, #992146)
 
- -- Timo Aaltonen <tjaalton@debian.org>  Tue, 01 Dec 2020 09:43:58 +0200
+ -- Timo Aaltonen <tjaalton@debian.org>  Sun, 15 Aug 2021 12:35:05 +0300
