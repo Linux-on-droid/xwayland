@@ -1,3 +1,17 @@
+xwayland (2:21.1.4-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+  * render: Fix out of bounds access in SProcRenderCompositeGlyphs()
+    [CVE-2021-4008]
+  * xfixes: Fix out of bounds access in *ProcXFixesCreatePointerBarrier()
+    [CVE-2021-4009]
+  * Xext: Fix out of bounds access in SProcScreenSaverSuspend()
+    [CVE-2021-4010]
+  * record: Fix out of bounds access in SwapCreateRegister()
+    [CVE-2021-4011]
+
+ -- Timo Aaltonen <tjaalton@debian.org>  Tue, 14 Dec 2021 16:16:13 +0200
+
 xwayland (2:21.1.3-1) unstable; urgency=medium
 
   * Initial release. (Closes: #981841, #992146)
