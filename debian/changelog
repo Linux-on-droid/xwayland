@@ -1,9 +1,9 @@
-xwayland (2:22.0.99.902-1) UNRELEASED; urgency=medium
+xwayland (2:22.0.99.902-1) unstable; urgency=medium
 
   * New upstream release candidate.
   * control: Add libxcvt-dev to build-depends.
 
- -- Timo Aaltonen <tjaalton@debian.org>  Thu, 03 Feb 2022 12:39:44 +0200
+ -- Timo Aaltonen <tjaalton@debian.org>  Thu, 03 Feb 2022 12:56:33 +0200
 
 xwayland (2:21.1.4-1) unstable; urgency=medium
 
