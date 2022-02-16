@@ -1,9 +1,9 @@
-xwayland (2:22.1.0-1) UNRELEASED; urgency=medium
+xwayland (2:22.1.0-1) unstable; urgency=medium
 
   * New upstream release.
   * control: Bump policy to 4.6.0.
 
- -- Timo Aaltonen <tjaalton@debian.org>  Wed, 16 Feb 2022 20:17:57 +0200
+ -- Timo Aaltonen <tjaalton@debian.org>  Wed, 16 Feb 2022 20:20:06 +0200
 
 xwayland (2:22.0.99.902-1) unstable; urgency=medium
 
