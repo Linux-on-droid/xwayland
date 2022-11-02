@@ -5138,6 +5138,11 @@ _GetCountedString(char **wire_inout, ClientPtr client, char **str)
     CARD16 len;
 
     wire = *wire_inout;
+
+    if (client->req_len <
+        bytes_to_int32(wire + 2 - (char *) client->requestBuffer))
+        return BadValue;
+
     len = *(CARD16 *) wire;
     if (client->swapped) {
         swaps(&len);
@@ -5795,7 +5800,8 @@ static unsigned char componentExprLegal[] = {
 };
 
 static char *
-GetComponentSpec(unsigned char **pWire, Bool allowExpr, int *errRtrn)
+GetComponentSpec(ClientPtr client, xkbGetKbdByNameReq *stuff,
+                 unsigned char **pWire, Bool allowExpr, int *errRtrn)
 {
     int len;
     register int i;
@@ -5807,8 +5813,16 @@ GetComponentSpec(unsigned char **pWire, Bool allowExpr, int *errRtrn)
         legal = &componentSpecLegal[0];
 
     wire = *pWire;
+    if (!_XkbCheckRequestBounds(client, stuff, wire, wire + 1)) {
+        *errRtrn = BadLength;
+        return NULL;
+    }
     len = (*(unsigned char *) wire++);
     if (len > 0) {
+        if (!_XkbCheckRequestBounds(client, stuff, wire, wire + len)) {
+            *errRtrn = BadLength;
+            return NULL;
+        }
         str = calloc(1, len + 1);
         if (str) {
             tmp = str;
@@ -5862,6 +5876,8 @@ ProcXkbListComponents(ClientPtr client)
      * length wrong. */
     str = (unsigned char *) &stuff[1];
     for (i = 0; i < 6; i++) {
+        if (!_XkbCheckRequestBounds(client, stuff, str, str + 1))
+            return BadLength;
         size = *((uint8_t *)str);
         len = (str + size + 1) - ((unsigned char *) stuff);
         if ((XkbPaddedSize(len) / 4) > stuff->length)
@@ -5936,18 +5952,32 @@ ProcXkbGetKbdByName(ClientPtr client)
     xkb = dev->key->xkbInfo->desc;
     status = Success;
     str = (unsigned char *) &stuff[1];
-    if (GetComponentSpec(&str, TRUE, &status))  /* keymap, unsupported */
-        return BadMatch;
-    names.keycodes = GetComponentSpec(&str, TRUE, &status);
-    names.types = GetComponentSpec(&str, TRUE, &status);
-    names.compat = GetComponentSpec(&str, TRUE, &status);
-    names.symbols = GetComponentSpec(&str, TRUE, &status);
-    names.geometry = GetComponentSpec(&str, TRUE, &status);
-    if (status != Success)
+    {
+        char *keymap = GetComponentSpec(client, stuff, &str, TRUE, &status);  /* keymap, unsupported */
+        if (keymap) {
+            free(keymap);
+            return BadMatch;
+        }
+    }
+    names.keycodes = GetComponentSpec(client, stuff, &str, TRUE, &status);
+    names.types = GetComponentSpec(client, stuff, &str, TRUE, &status);
+    names.compat = GetComponentSpec(client, stuff, &str, TRUE, &status);
+    names.symbols = GetComponentSpec(client, stuff, &str, TRUE, &status);
+    names.geometry = GetComponentSpec(client, stuff, &str, TRUE, &status);
+    if (status == Success) {
+        len = str - ((unsigned char *) stuff);
+        if ((XkbPaddedSize(len) / 4) != stuff->length)
+            status = BadLength;
+    }
+
+    if (status != Success) {
+        free(names.keycodes);
+        free(names.types);
+        free(names.compat);
+        free(names.symbols);
+        free(names.geometry);
         return status;
-    len = str - ((unsigned char *) stuff);
-    if ((XkbPaddedSize(len) / 4) != stuff->length)
-        return BadLength;
+    }
 
     CHK_MASK_LEGAL(0x01, stuff->want, XkbGBN_AllComponentsMask);
     CHK_MASK_LEGAL(0x02, stuff->need, XkbGBN_AllComponentsMask);

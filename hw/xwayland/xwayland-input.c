@@ -50,12 +50,6 @@
 #include "pointer-gestures-unstable-v1-client-protocol.h"
 #include "xwayland-keyboard-grab-unstable-v1-client-protocol.h"
 
-struct axis_discrete_pending {
-    struct xorg_list l;
-    uint32_t axis;
-    int32_t discrete;
-};
-
 struct sync_pending {
     struct xorg_list l;
     DeviceIntPtr pending_dev;
@@ -473,6 +467,9 @@ pointer_handle_enter(void *data, struct wl_pointer *pointer,
     if (surface == NULL)
         return;
 
+    if (!is_surface_from_xwl_window(surface))
+        return;
+
     xwl_seat->xwl_screen->serial = serial;
     xwl_seat->pointer_enter_serial = serial;
 
@@ -611,6 +608,36 @@ dispatch_relative_motion(struct xwl_seat *xwl_seat)
 }
 
 static void
+dispatch_scroll_motion(struct xwl_seat *xwl_seat)
+{
+    ValuatorMask mask;
+    const int divisor = 10;
+    wl_fixed_t dy = xwl_seat->pending_pointer_event.scroll_dy;
+    wl_fixed_t dx = xwl_seat->pending_pointer_event.scroll_dx;
+    int32_t discrete_dy = xwl_seat->pending_pointer_event.scroll_discrete_dy;
+    int32_t discrete_dx = xwl_seat->pending_pointer_event.scroll_discrete_dx;
+
+    valuator_mask_zero(&mask);
+    if (xwl_seat->pending_pointer_event.has_vertical_scroll)
+        valuator_mask_set_double(&mask,
+                                 3,
+                                 wl_fixed_to_double(dy) / divisor);
+    else if (xwl_seat->pending_pointer_event.has_vertical_scroll_discrete)
+        valuator_mask_set(&mask, 3, discrete_dy);
+
+    if (xwl_seat->pending_pointer_event.has_horizontal_scroll)
+        valuator_mask_set_double(&mask,
+                                 2,
+                                 wl_fixed_to_double(dx) / divisor);
+    else if (xwl_seat->pending_pointer_event.has_horizontal_scroll_discrete)
+        valuator_mask_set(&mask, 2, discrete_dx);
+
+    QueuePointerEvents(get_pointer_device(xwl_seat),
+                       MotionNotify, 0, POINTER_RELATIVE, &mask);
+}
+
+
+static void
 dispatch_pointer_motion_event(struct xwl_seat *xwl_seat)
 {
     Bool has_relative = xwl_seat->pending_pointer_event.has_relative;
@@ -626,8 +653,18 @@ dispatch_pointer_motion_event(struct xwl_seat *xwl_seat)
             dispatch_absolute_motion(xwl_seat);
     }
 
+    if (xwl_seat->pending_pointer_event.has_vertical_scroll ||
+        xwl_seat->pending_pointer_event.has_horizontal_scroll ||
+        xwl_seat->pending_pointer_event.has_vertical_scroll_discrete ||
+        xwl_seat->pending_pointer_event.has_horizontal_scroll_discrete)
+        dispatch_scroll_motion(xwl_seat);
+
     xwl_seat->pending_pointer_event.has_absolute = FALSE;
     xwl_seat->pending_pointer_event.has_relative = FALSE;
+    xwl_seat->pending_pointer_event.has_vertical_scroll = FALSE;
+    xwl_seat->pending_pointer_event.has_horizontal_scroll = FALSE;
+    xwl_seat->pending_pointer_event.has_vertical_scroll_discrete = FALSE;
+    xwl_seat->pending_pointer_event.has_horizontal_scroll_discrete = FALSE;
 }
 
 static void
@@ -684,42 +721,17 @@ pointer_handle_axis(void *data, struct wl_pointer *pointer,
                     uint32_t time, uint32_t axis, wl_fixed_t value)
 {
     struct xwl_seat *xwl_seat = data;
-    int index;
-    const int divisor = 10;
-    ValuatorMask mask;
-    struct axis_discrete_pending *pending = NULL;
-    struct axis_discrete_pending *iter;
 
     switch (axis) {
     case WL_POINTER_AXIS_VERTICAL_SCROLL:
-        index = 3;
+        xwl_seat->pending_pointer_event.has_vertical_scroll = TRUE;
+        xwl_seat->pending_pointer_event.scroll_dy = value;
         break;
     case WL_POINTER_AXIS_HORIZONTAL_SCROLL:
-        index = 2;
+        xwl_seat->pending_pointer_event.has_horizontal_scroll = TRUE;
+        xwl_seat->pending_pointer_event.scroll_dx = value;
         break;
-    default:
-        return;
     }
-
-    xorg_list_for_each_entry(iter, &xwl_seat->axis_discrete_pending, l) {
-        if (iter->axis == axis) {
-            pending = iter;
-            break;
-        }
-    }
-
-    valuator_mask_zero(&mask);
-
-    if (pending) {
-        valuator_mask_set(&mask, index, pending->discrete);
-        xorg_list_del(&pending->l);
-        free(pending);
-    } else {
-        valuator_mask_set_double(&mask, index, wl_fixed_to_double(value) / divisor);
-    }
-
-    QueuePointerEvents(get_pointer_device(xwl_seat),
-                       MotionNotify, 0, POINTER_RELATIVE, &mask);
 }
 
 static void
@@ -742,6 +754,18 @@ static void
 pointer_handle_axis_stop(void *data, struct wl_pointer *wl_pointer,
                          uint32_t time, uint32_t axis)
 {
+    struct xwl_seat *xwl_seat = data;
+
+    switch (axis) {
+    case WL_POINTER_AXIS_VERTICAL_SCROLL:
+        xwl_seat->pending_pointer_event.has_vertical_scroll = TRUE;
+        xwl_seat->pending_pointer_event.scroll_dy = 0;
+        break;
+    case WL_POINTER_AXIS_HORIZONTAL_SCROLL:
+        xwl_seat->pending_pointer_event.has_horizontal_scroll = TRUE;
+        xwl_seat->pending_pointer_event.scroll_dx = 0;
+        break;
+    }
 }
 
 static void
@@ -750,14 +774,16 @@ pointer_handle_axis_discrete(void *data, struct wl_pointer *wl_pointer,
 {
     struct xwl_seat *xwl_seat = data;
 
-    struct axis_discrete_pending *pending = malloc(sizeof *pending);
-    if (!pending)
-        return;
-
-    pending->axis = axis;
-    pending->discrete = discrete;
-
-    xorg_list_add(&pending->l, &xwl_seat->axis_discrete_pending);
+    switch (axis) {
+    case WL_POINTER_AXIS_VERTICAL_SCROLL:
+        xwl_seat->pending_pointer_event.has_vertical_scroll_discrete = TRUE;
+        xwl_seat->pending_pointer_event.scroll_discrete_dy = discrete;
+        break;
+    case WL_POINTER_AXIS_HORIZONTAL_SCROLL:
+        xwl_seat->pending_pointer_event.has_horizontal_scroll_discrete = TRUE;
+        xwl_seat->pending_pointer_event.scroll_discrete_dx = discrete;
+        break;
+    }
 }
 
 static const struct wl_pointer_listener pointer_listener = {
@@ -810,6 +836,9 @@ pointer_gesture_swipe_handle_begin(void *data,
                                    uint32_t fingers)
 {
     struct xwl_seat *xwl_seat = data;
+
+    if (surface != NULL && !is_surface_from_xwl_window(surface))
+        return;
 
     xwl_seat->pointer_gesture_swipe_fingers = fingers;
     QueueGestureSwipeEvents(xwl_seat->pointer_gestures,
@@ -869,6 +898,9 @@ pointer_gesture_pinch_handle_begin(void *data,
                                    uint32_t fingers)
 {
     struct xwl_seat *xwl_seat = data;
+
+    if (surface != NULL && !is_surface_from_xwl_window(surface))
+        return;
 
     xwl_seat->pointer_gesture_pinch_fingers = fingers;
     xwl_seat->pointer_gesture_pinch_last_scale = 1.0;
@@ -1003,6 +1035,9 @@ keyboard_handle_enter(void *data, struct wl_keyboard *keyboard,
     struct xwl_seat *xwl_seat = data;
     uint32_t *k;
 
+    if (surface != NULL && !is_surface_from_xwl_window(surface))
+        return;
+
     xwl_seat->xwl_screen->serial = serial;
     xwl_seat->keyboard_focus = surface;
 
@@ -1017,6 +1052,9 @@ keyboard_handle_leave(void *data, struct wl_keyboard *keyboard,
 {
     struct xwl_seat *xwl_seat = data;
     uint32_t *k;
+
+    if (surface != NULL && !is_surface_from_xwl_window(surface))
+        return;
 
     xwl_seat->xwl_screen->serial = serial;
 
@@ -1216,6 +1254,9 @@ touch_handle_down(void *data, struct wl_touch *wl_touch,
     struct xwl_touch *xwl_touch;
 
     if (surface == NULL)
+        return;
+
+    if (!is_surface_from_xwl_window(surface))
         return;
 
     xwl_touch = calloc(1, sizeof *xwl_touch);
@@ -1718,7 +1759,6 @@ create_input_device(struct xwl_screen *xwl_screen, uint32_t id, uint32_t version
     wl_array_init(&xwl_seat->keys);
 
     xorg_list_init(&xwl_seat->touches);
-    xorg_list_init(&xwl_seat->axis_discrete_pending);
     xorg_list_init(&xwl_seat->sync_pending);
 }
 
@@ -1727,7 +1767,6 @@ xwl_seat_destroy(struct xwl_seat *xwl_seat)
 {
     struct xwl_touch *xwl_touch, *next_xwl_touch;
     struct sync_pending *p, *npd;
-    struct axis_discrete_pending *ad, *ad_next;
 
     xorg_list_for_each_entry_safe(xwl_touch, next_xwl_touch,
                                   &xwl_seat->touches, link_touch) {
@@ -1738,11 +1777,6 @@ xwl_seat_destroy(struct xwl_seat *xwl_seat)
     xorg_list_for_each_entry_safe(p, npd, &xwl_seat->sync_pending, l) {
         xorg_list_del(&xwl_seat->sync_pending);
         free (p);
-    }
-
-    xorg_list_for_each_entry_safe(ad, ad_next, &xwl_seat->axis_discrete_pending, l) {
-        xorg_list_del(&ad->l);
-        free(ad);
     }
 
     release_tablet_manager_seat(xwl_seat);
@@ -1899,6 +1933,9 @@ tablet_tool_proximity_in(void *data, struct zwp_tablet_tool_v2 *tool,
      * see pointer_handle_enter()
      */
     if (wl_surface == NULL)
+        return;
+
+    if (!is_surface_from_xwl_window(wl_surface))
         return;
 
     xwl_tablet_tool->proximity_in_serial = serial;
