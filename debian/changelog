@@ -1,3 +1,11 @@
+xwayland (2:22.1.6-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+    - CVE-2022-46340, CVE-2022-46341, CVE-2022-46342, CVE-2022-46343,
+      CVE-2022-46344, CVE-2022-4283
+
+ -- Timo Aaltonen <tjaalton@debian.org>  Wed, 14 Dec 2022 16:15:42 +0200
+
 xwayland (2:22.1.5-1) unstable; urgency=medium
 
   * New upstream release.
