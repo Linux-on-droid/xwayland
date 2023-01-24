@@ -2,6 +2,7 @@ xwayland (2:22.1.7-1) UNRELEASED; urgency=medium
 
   * New upstream release.
   * rules, install: Ship the .pc file. (Closes: #1025742)
+  * rules: Enable full hardening flags. (Closes: #1026168)
 
  -- Timo Aaltonen <tjaalton@debian.org>  Wed, 21 Dec 2022 16:26:56 +0200
 
