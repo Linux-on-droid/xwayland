@@ -1,10 +1,10 @@
-xwayland (2:23.1.0-1) UNRELEASED; urgency=medium
+xwayland (2:23.1.0-1) experimental; urgency=medium
 
   * New upstream release.
   * patches: Refreshed.
   * install: Add desktop file.
 
- -- Timo Aaltonen <tjaalton@debian.org>  Thu, 23 Mar 2023 15:10:37 +0200
+ -- Timo Aaltonen <tjaalton@debian.org>  Fri, 24 Mar 2023 11:26:25 +0200
 
 xwayland (2:22.1.8-1) unstable; urgency=medium
 
