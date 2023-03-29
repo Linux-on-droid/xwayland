@@ -1053,7 +1053,12 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
                    "glGetString() returned NULL, your GL is broken\n");
         goto error;
     }
-    if (strstr((const char *)renderer, "llvmpipe")) {
+    if (strstr((const char *)renderer, "softpipe")) {
+        xf86DrvMsg(scrn->scrnIndex, X_INFO,
+                   "Refusing to try glamor on softpipe\n");
+        goto error;
+    }
+    if (!strncmp("llvmpipe", (const char *)renderer, strlen("llvmpipe"))) {
         if (scrn->confScreen->num_gpu_devices)
             xf86DrvMsg(scrn->scrnIndex, X_INFO,
                        "Allowing glamor on llvmpipe for PRIME\n");
