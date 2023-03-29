@@ -1,3 +1,10 @@
+xwayland (2:22.1.9-1) unstable; urgency=high
+
+  * New upstream bugfix release
+    - composite: Fix use-after-free of the COW (CVE-2023-1393)
+
+ -- Julien Cristau <jcristau@debian.org>  Wed, 29 Mar 2023 15:23:04 +0200
+
 xwayland (2:22.1.8-1) unstable; urgency=medium
 
   * New upstream release.
