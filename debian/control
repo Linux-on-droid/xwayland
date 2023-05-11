@@ -20,6 +20,7 @@ Build-Depends:
  libxshmfence-dev,
  libxv-dev,
  libwayland-dev,
+ libwayland-dev:native,
  mesa-common-dev,
  x11proto-dev,
  xfonts-utils,

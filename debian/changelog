@@ -1,6 +1,8 @@
 xwayland (2:23.1.1-1) UNRELEASED; urgency=medium
 
   * New upstream release.
+  * control: Fix cross-building, add libwayland-dev:native to build-
+    depends. (Closes: #1002515)
 
  -- Timo Aaltonen <tjaalton@debian.org>  Thu, 11 May 2023 12:49:10 +0300
 
