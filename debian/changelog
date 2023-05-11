@@ -1,3 +1,9 @@
+xwayland (2:23.1.1-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+
+ -- Timo Aaltonen <tjaalton@debian.org>  Thu, 11 May 2023 12:49:10 +0300
+
 xwayland (2:23.1.0-1) experimental; urgency=medium
 
   * New upstream release.
