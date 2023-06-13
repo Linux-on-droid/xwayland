@@ -275,11 +275,12 @@ error:
 }
 
 static PixmapPtr
-xwl_glamor_gbm_create_pixmap(ScreenPtr screen,
-                             int width, int height, int depth,
-                             unsigned int hint)
+xwl_glamor_gbm_create_pixmap_internal(struct xwl_screen *xwl_screen,
+                                      DrawablePtr drawable,
+                                      int width, int height, int depth,
+                                      unsigned int hint,
+                                      Bool implicit_scanout)
 {
-    struct xwl_screen *xwl_screen = xwl_screen_get(screen);
     struct xwl_gbm_private *xwl_gbm = xwl_gbm_get(xwl_screen);
     struct gbm_bo *bo = NULL;
     PixmapPtr pixmap = NULL;
@@ -293,25 +294,49 @@ xwl_glamor_gbm_create_pixmap(ScreenPtr screen,
 
 #ifdef GBM_BO_WITH_MODIFIERS
         if (xwl_gbm->dmabuf_capable) {
-            uint32_t num_modifiers;
+            uint32_t num_modifiers = 0;
             uint64_t *modifiers = NULL;
+            Bool supports_scanout = FALSE;
 
-            xwl_glamor_get_modifiers(screen, format, &num_modifiers, &modifiers);
+            if (drawable) {
+                xwl_glamor_get_drawable_modifiers_and_scanout(drawable,
+                                                              format,
+                                                              &num_modifiers,
+                                                              &modifiers,
+                                                              &supports_scanout);
+            }
 
-            if (num_modifiers > 0)
+            if (num_modifiers == 0) {
+                xwl_glamor_get_modifiers(xwl_screen->screen, format,
+                                         &num_modifiers, &modifiers);
+            }
+
+            if (num_modifiers > 0) {
+#ifdef GBM_BO_WITH_MODIFIERS2
+                uint32_t usage = GBM_BO_USE_RENDERING;
+                if (supports_scanout)
+                    usage |= GBM_BO_USE_SCANOUT;
+                bo = gbm_bo_create_with_modifiers2(xwl_gbm->gbm, width, height,
+                                                   format, modifiers, num_modifiers,
+                                                   usage);
+#else
                 bo = gbm_bo_create_with_modifiers(xwl_gbm->gbm, width, height,
                                                   format, modifiers, num_modifiers);
+#endif
+            }
             free(modifiers);
         }
 #endif
         if (bo == NULL) {
+            uint32_t usage = GBM_BO_USE_RENDERING;
             implicit = TRUE;
-            bo = gbm_bo_create(xwl_gbm->gbm, width, height, format,
-                               GBM_BO_USE_RENDERING);
+            if (implicit_scanout)
+                usage |= GBM_BO_USE_SCANOUT;
+            bo = gbm_bo_create(xwl_gbm->gbm, width, height, format, usage);
         }
 
         if (bo) {
-            pixmap = xwl_glamor_gbm_create_pixmap_for_bo(screen, bo, depth, implicit);
+            pixmap = xwl_glamor_gbm_create_pixmap_for_bo(xwl_screen->screen, bo, depth, implicit);
 
             if (!pixmap) {
                 gbm_bo_destroy(bo);
@@ -323,9 +348,30 @@ xwl_glamor_gbm_create_pixmap(ScreenPtr screen,
     }
 
     if (!pixmap)
-        pixmap = glamor_create_pixmap(screen, width, height, depth, hint);
+        pixmap = glamor_create_pixmap(xwl_screen->screen, width, height, depth, hint);
 
     return pixmap;
+}
+
+static PixmapPtr
+xwl_glamor_gbm_create_pixmap(ScreenPtr screen,
+                             int width, int height, int depth,
+                             unsigned int hint)
+{
+    return xwl_glamor_gbm_create_pixmap_internal(xwl_screen_get(screen), NULL,
+                                                 width, height, depth, hint, FALSE);
+}
+
+static PixmapPtr
+xwl_glamor_gbm_create_pixmap_for_window(struct xwl_window *xwl_window)
+{
+    return xwl_glamor_gbm_create_pixmap_internal(xwl_window->xwl_screen,
+                                                 &xwl_window->window->drawable,
+                                                 xwl_window->window->drawable.width,
+                                                 xwl_window->window->drawable.height,
+                                                 xwl_window->window->drawable.depth,
+                                                 CREATE_PIXMAP_USAGE_BACKING_PIXMAP,
+                                                 xwl_window->has_implicit_scanout_support);
 }
 
 static Bool
@@ -1205,4 +1251,5 @@ xwl_glamor_init_gbm(struct xwl_screen *xwl_screen)
     xwl_screen->gbm_backend.is_available = TRUE;
     xwl_screen->gbm_backend.backend_flags = XWL_EGL_BACKEND_NEEDS_BUFFER_FLUSH |
                                             XWL_EGL_BACKEND_NEEDS_N_BUFFERING;
+    xwl_screen->gbm_backend.create_pixmap_for_window = xwl_glamor_gbm_create_pixmap_for_window;
 }

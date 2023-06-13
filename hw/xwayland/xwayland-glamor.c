@@ -43,6 +43,7 @@
 #include "xwayland-glx.h"
 #include "xwayland-screen.h"
 #include "xwayland-window.h"
+#include "xwayland-window-buffers.h"
 
 #include <sys/mman.h>
 
@@ -124,10 +125,14 @@ xwl_glamor_is_modifier_supported_in_formats(struct xwl_format *formats, int num_
 
 static Bool
 xwl_feedback_is_modifier_supported(struct xwl_dmabuf_feedback *xwl_feedback,
-                                   uint32_t format, uint64_t modifier)
+                                   uint32_t format, uint64_t modifier,
+                                   int supports_scanout)
 {
     for (int i = 0; i < xwl_feedback->dev_formats_len; i++) {
         struct xwl_device_formats *dev_formats = &xwl_feedback->dev_formats[i];
+
+        if (supports_scanout && !dev_formats->supports_scanout)
+            continue;
 
         if (xwl_glamor_is_modifier_supported_in_formats(dev_formats->formats,
                                                         dev_formats->num_formats,
@@ -157,11 +162,11 @@ xwl_glamor_is_modifier_supported(struct xwl_screen *xwl_screen,
                                                            format, modifier);
     }
 
-    if (xwl_feedback_is_modifier_supported(&xwl_screen->default_feedback, format, modifier))
+    if (xwl_feedback_is_modifier_supported(&xwl_screen->default_feedback, format, modifier, FALSE))
         return TRUE;
 
     xorg_list_for_each_entry(xwl_window, &xwl_screen->window_list, link_window) {
-        if (xwl_feedback_is_modifier_supported(&xwl_window->feedback, format, modifier))
+        if (xwl_feedback_is_modifier_supported(&xwl_window->feedback, format, modifier, FALSE))
             return TRUE;
     }
 
@@ -322,7 +327,8 @@ xwl_get_modifiers_for_format(struct xwl_format *format_array, int num_formats,
 static Bool
 xwl_get_modifiers_for_device(struct xwl_dmabuf_feedback *feedback, drmDevice *device,
                              uint32_t format, uint32_t *num_modifiers,
-                             uint64_t **modifiers)
+                             uint64_t **modifiers,
+                             Bool *supports_scanout)
 {
     /* Now try to find a matching set of tranches for the window's device */
     for (int i = 0; i < feedback->dev_formats_len; i++) {
@@ -330,8 +336,11 @@ xwl_get_modifiers_for_device(struct xwl_dmabuf_feedback *feedback, drmDevice *de
 
         if (drmDevicesEqual(dev_formats->drm_dev, device) &&
             xwl_get_modifiers_for_format(dev_formats->formats, dev_formats->num_formats,
-                                         format, num_modifiers, modifiers))
+                                         format, num_modifiers, modifiers)) {
+            if (supports_scanout)
+                *supports_scanout = !!dev_formats->supports_scanout;
             return TRUE;
+        }
     }
 
     return FALSE;
@@ -355,7 +364,8 @@ xwl_glamor_get_modifiers(ScreenPtr screen, uint32_t format,
         main_dev = xwl_screen_get_main_dev(xwl_screen);
 
         return xwl_get_modifiers_for_device(&xwl_screen->default_feedback, main_dev,
-                                            format, num_modifiers, modifiers);
+                                            format, num_modifiers, modifiers,
+                                            NULL);
     } else {
         return xwl_get_modifiers_for_format(xwl_screen->formats, xwl_screen->num_formats,
                                             format, num_modifiers, modifiers);
@@ -363,8 +373,11 @@ xwl_glamor_get_modifiers(ScreenPtr screen, uint32_t format,
 }
 
 Bool
-xwl_glamor_get_drawable_modifiers(DrawablePtr drawable, uint32_t format,
-                                  uint32_t *num_modifiers, uint64_t **modifiers)
+xwl_glamor_get_drawable_modifiers_and_scanout(DrawablePtr drawable,
+                                              uint32_t format,
+                                              uint32_t *num_modifiers,
+                                              uint64_t **modifiers,
+                                              Bool *supports_scanout)
 {
     struct xwl_screen *xwl_screen = xwl_screen_get(drawable->pScreen);
     struct xwl_window *xwl_window;
@@ -372,6 +385,8 @@ xwl_glamor_get_drawable_modifiers(DrawablePtr drawable, uint32_t format,
 
     *num_modifiers = 0;
     *modifiers = NULL;
+    if (supports_scanout)
+        *supports_scanout = FALSE;
 
     /* We can only return per-drawable modifiers if the compositor supports feedback */
     if (xwl_screen->dmabuf_protocol_version < 4)
@@ -389,7 +404,18 @@ xwl_glamor_get_drawable_modifiers(DrawablePtr drawable, uint32_t format,
     main_dev = xwl_screen_get_main_dev(xwl_screen);
 
     return xwl_get_modifiers_for_device(&xwl_window->feedback, main_dev,
-                                        format, num_modifiers, modifiers);
+                                        format, num_modifiers, modifiers,
+                                        supports_scanout);
+
+}
+
+Bool
+xwl_glamor_get_drawable_modifiers(DrawablePtr drawable, uint32_t format,
+                                  uint32_t *num_modifiers, uint64_t **modifiers)
+{
+    return xwl_glamor_get_drawable_modifiers_and_scanout(drawable,
+                                                         format, num_modifiers,
+                                                         modifiers, NULL);
 
 }
 
@@ -660,24 +686,6 @@ static const struct zwp_linux_dmabuf_feedback_v1_listener xwl_dmabuf_feedback_li
 };
 
 Bool
-xwl_dmabuf_setup_feedback_for_window(struct xwl_window *xwl_window)
-{
-    struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
-
-    xwl_window->feedback.dmabuf_feedback =
-        zwp_linux_dmabuf_v1_get_surface_feedback(xwl_screen->dmabuf, xwl_window->surface);
-
-    if (!xwl_window->feedback.dmabuf_feedback)
-        return FALSE;
-
-    zwp_linux_dmabuf_feedback_v1_add_listener(xwl_window->feedback.dmabuf_feedback,
-                                              &xwl_dmabuf_feedback_listener,
-                                              &xwl_window->feedback);
-
-    return TRUE;
-}
-
-Bool
 xwl_screen_set_dmabuf_interface(struct xwl_screen *xwl_screen,
                                 uint32_t id, uint32_t version)
 {
@@ -703,6 +711,115 @@ xwl_screen_set_dmabuf_interface(struct xwl_screen *xwl_screen,
                                                   &xwl_dmabuf_feedback_listener,
                                                   &xwl_screen->default_feedback);
     }
+
+    return TRUE;
+}
+
+static void
+xwl_window_dmabuf_feedback_main_device(void *data,
+                                       struct zwp_linux_dmabuf_feedback_v1 *dmabuf_feedback,
+                                       struct wl_array *dev)
+{
+    struct xwl_window *xwl_window = data;
+
+    xwl_dmabuf_feedback_main_device(&xwl_window->feedback, dmabuf_feedback, dev);
+}
+
+static void
+xwl_window_dmabuf_feedback_tranche_target_device(void *data,
+                                                 struct zwp_linux_dmabuf_feedback_v1 *dmabuf_feedback,
+                                                 struct wl_array *dev)
+{
+    struct xwl_window *xwl_window = data;
+
+    xwl_dmabuf_feedback_tranche_target_device(&xwl_window->feedback, dmabuf_feedback, dev);
+}
+
+static void
+xwl_window_dmabuf_feedback_tranche_flags(void *data,
+                                         struct zwp_linux_dmabuf_feedback_v1 *dmabuf_feedback,
+                                         uint32_t flags)
+{
+    struct xwl_window *xwl_window = data;
+
+    xwl_dmabuf_feedback_tranche_flags(&xwl_window->feedback, dmabuf_feedback, flags);
+}
+
+static void
+xwl_window_dmabuf_feedback_tranche_formats(void *data,
+                                           struct zwp_linux_dmabuf_feedback_v1 *dmabuf_feedback,
+                                           struct wl_array *indices)
+{
+    struct xwl_window *xwl_window = data;
+
+    xwl_dmabuf_feedback_tranche_formats(&xwl_window->feedback, dmabuf_feedback, indices);
+}
+
+static void
+xwl_window_dmabuf_feedback_tranche_done(void *data,
+                                        struct zwp_linux_dmabuf_feedback_v1 *dmabuf_feedback)
+{
+    struct xwl_window *xwl_window = data;
+
+    xwl_dmabuf_feedback_tranche_done(&xwl_window->feedback, dmabuf_feedback);
+}
+
+static void
+xwl_window_dmabuf_feedback_done(void *data,
+                                struct zwp_linux_dmabuf_feedback_v1 *dmabuf_feedback)
+{
+    struct xwl_window *xwl_window = data;
+    uint32_t format = wl_drm_format_for_depth(xwl_window->window->drawable.depth);
+
+    xwl_dmabuf_feedback_done(&xwl_window->feedback, dmabuf_feedback);
+
+    xwl_window->has_implicit_scanout_support =
+        xwl_feedback_is_modifier_supported(&xwl_window->feedback, format,
+                                           DRM_FORMAT_MOD_INVALID, TRUE);
+    DebugF("XWAYLAND: Window 0x%x can%s get implicit scanout support\n",
+            xwl_window->window->drawable.id,
+            xwl_window->has_implicit_scanout_support ? "" : "not");
+
+    /* If the linux-dmabuf v4 per-surface feedback changed, recycle the
+     * window buffers so that they get re-created with appropriate parameters.
+     */
+    xwl_window_buffers_recycle(xwl_window);
+}
+
+static void
+xwl_window_dmabuf_feedback_format_table(void *data,
+                                        struct zwp_linux_dmabuf_feedback_v1 *dmabuf_feedback,
+                                        int32_t fd, uint32_t size)
+{
+    struct xwl_window *xwl_window = data;
+
+    xwl_dmabuf_feedback_format_table(&xwl_window->feedback, dmabuf_feedback, fd, size);
+}
+
+static const struct zwp_linux_dmabuf_feedback_v1_listener xwl_window_dmabuf_feedback_listener = {
+    .done = xwl_window_dmabuf_feedback_done,
+    .format_table = xwl_window_dmabuf_feedback_format_table,
+    .main_device = xwl_window_dmabuf_feedback_main_device,
+    .tranche_done = xwl_window_dmabuf_feedback_tranche_done,
+    .tranche_target_device = xwl_window_dmabuf_feedback_tranche_target_device,
+    .tranche_formats = xwl_window_dmabuf_feedback_tranche_formats,
+    .tranche_flags = xwl_window_dmabuf_feedback_tranche_flags,
+};
+
+Bool
+xwl_dmabuf_setup_feedback_for_window(struct xwl_window *xwl_window)
+{
+    struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
+
+    xwl_window->feedback.dmabuf_feedback =
+        zwp_linux_dmabuf_v1_get_surface_feedback(xwl_screen->dmabuf, xwl_window->surface);
+
+    if (!xwl_window->feedback.dmabuf_feedback)
+        return FALSE;
+
+    zwp_linux_dmabuf_feedback_v1_add_listener(xwl_window->feedback.dmabuf_feedback,
+                                              &xwl_window_dmabuf_feedback_listener,
+                                              xwl_window);
 
     return TRUE;
 }
@@ -827,6 +944,20 @@ xwl_glamor_needs_n_buffering(struct xwl_screen *xwl_screen)
 
     return (xwl_screen->egl_backend->backend_flags &
                 XWL_EGL_BACKEND_NEEDS_N_BUFFERING);
+}
+
+PixmapPtr
+xwl_glamor_create_pixmap_for_window(struct xwl_window *xwl_window)
+{
+    struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
+
+    if (!xwl_screen->glamor || !xwl_screen->egl_backend)
+        return NullPixmap;
+
+    if (xwl_screen->egl_backend->create_pixmap_for_window)
+        return xwl_screen->egl_backend->create_pixmap_for_window(xwl_window);
+    else
+        return NullPixmap;
 }
 
 void

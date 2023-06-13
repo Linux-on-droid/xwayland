@@ -107,6 +107,8 @@ conf_data.set('GBM_BO_WITH_MODIFIERS',
               build_glamor and gbm_dep.found() and gbm_dep.version().version_compare('>= 17.1') ? '1' : false)
 conf_data.set('GBM_BO_FD_FOR_PLANE',
               build_glamor and gbm_dep.found() and gbm_dep.version().version_compare('>= 21.1') ? '1' : false)
+conf_data.set('GBM_BO_WITH_MODIFIERS2',
+              build_glamor and gbm_dep.found() and gbm_dep.version().version_compare('>= 21.3') ? '1' : false)
 
 conf_data.set_quoted('SERVER_MISC_CONFIG_PATH', serverconfigdir)
 conf_data.set_quoted('PROJECTROOT', get_option('prefix'))
@@ -178,7 +180,7 @@ if cc.has_header_symbol('sys/socket.h', 'SCM_RIGHTS')
 endif
 
 if conf_data.get('HAVE_GETPEEREID').to_int() == 0 and conf_data.get('HAVE_GETPEERUCRED').to_int() == 0
-    if not cc.has_header_symbol('sys/socket.h', 'SO_PEERCRED')
+    if not cc.has_header_symbol('sys/socket.h', 'SO_PEERCRED', args: '-D_GNU_SOURCE')
         conf_data.set('NO_LOCAL_CLIENT_CRED', 1)
     endif
 endif

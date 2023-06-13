@@ -84,9 +84,22 @@ xwl_present_window_get_priv(WindowPtr window)
 }
 
 static struct xwl_present_event *
-xwl_present_event_from_id(uint64_t event_id)
+xwl_present_event_from_id(WindowPtr present_window, uint64_t event_id)
 {
-    return (struct xwl_present_event*)(uintptr_t)event_id;
+    present_window_priv_ptr window_priv = present_get_window_priv(present_window, TRUE);
+    struct xwl_present_event *event;
+
+    xorg_list_for_each_entry(event, &window_priv->vblank, vblank.window_list) {
+        if (event->vblank.event_id == event_id)
+            return event;
+    }
+    return NULL;
+}
+
+static struct xwl_present_event *
+xwl_present_event_from_vblank(present_vblank_ptr vblank)
+{
+    return container_of(vblank, struct xwl_present_event, vblank);
 }
 
 static Bool entered_for_each_frame_callback;
@@ -268,7 +281,7 @@ static void
 xwl_present_free_idle_vblank(present_vblank_ptr vblank)
 {
     present_pixmap_idle(vblank->pixmap, vblank->window, vblank->serial, vblank->idle_fence);
-    xwl_present_free_event(xwl_present_event_from_id((uintptr_t)vblank));
+    xwl_present_free_event(xwl_present_event_from_vblank(vblank));
 }
 
 static WindowPtr
@@ -306,7 +319,7 @@ xwl_present_flips_stop(WindowPtr window)
         struct xwl_present_event *event;
 
         vblank = xwl_present_window->flip_active;
-        event = xwl_present_event_from_id((uintptr_t)vblank);
+        event = xwl_present_event_from_vblank(vblank);
         if (event->pixmap)
             xwl_present_free_idle_vblank(vblank);
         else
@@ -336,7 +349,7 @@ xwl_present_flip_notify_vblank(present_vblank_ptr vblank, uint64_t ust, uint64_t
 
     if (xwl_present_window->flip_active) {
         struct xwl_present_event *event =
-            xwl_present_event_from_id((uintptr_t)xwl_present_window->flip_active);
+            xwl_present_event_from_vblank(xwl_present_window->flip_active);
 
         if (!event->pixmap)
             xwl_present_free_event(event);
@@ -540,7 +553,12 @@ xwl_present_queue_vblank(ScreenPtr screen,
 {
     struct xwl_present_window *xwl_present_window = xwl_present_window_get_priv(present_window);
     struct xwl_window *xwl_window = xwl_window_from_window(present_window);
-    struct xwl_present_event *event = xwl_present_event_from_id(event_id);
+    struct xwl_present_event *event = xwl_present_event_from_id(present_window, event_id);
+
+    if (!event) {
+        ErrorF("present: Error getting event\n");
+        return BadImplementation;
+    }
 
     event->vblank.exec_msc = msc;
 
@@ -732,18 +750,15 @@ xwl_present_clear_window_flip(WindowPtr window)
 }
 
 static Bool
-xwl_present_flip(WindowPtr present_window,
-                 RRCrtcPtr crtc,
-                 uint64_t event_id,
-                 PixmapPtr pixmap,
-                 Bool sync_flip,
-                 RegionPtr damage)
+xwl_present_flip(present_vblank_ptr vblank, RegionPtr damage)
 {
+    WindowPtr present_window = vblank->window;
+    PixmapPtr pixmap = vblank->pixmap;
     struct xwl_window           *xwl_window = xwl_window_from_window(present_window);
     struct xwl_present_window   *xwl_present_window = xwl_present_window_priv(present_window);
     BoxPtr                      damage_box;
     struct wl_buffer            *buffer;
-    struct xwl_present_event    *event = xwl_present_event_from_id(event_id);
+    struct xwl_present_event    *event = xwl_present_event_from_vblank(vblank);
 
     if (!xwl_window)
         return FALSE;
@@ -781,7 +796,7 @@ xwl_present_flip(WindowPtr present_window,
 
     wl_surface_commit(xwl_window->surface);
 
-    if (!sync_flip) {
+    if (!vblank->sync_flip) {
         xwl_present_window->sync_callback =
             wl_display_sync(xwl_window->xwl_screen->display);
         wl_callback_add_listener(xwl_present_window->sync_callback,
@@ -845,8 +860,7 @@ xwl_present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
             } else
                 damage = RegionDuplicate(&window->clipList);
 
-            if (xwl_present_flip(vblank->window, vblank->crtc, vblank->event_id,
-                                 vblank->pixmap, vblank->sync_flip, damage)) {
+            if (xwl_present_flip(vblank, damage)) {
                 WindowPtr toplvl_window = xwl_present_toplvl_pixmap_window(vblank->window);
                 PixmapPtr old_pixmap = screen->GetWindowPixmap(window);
 
@@ -916,6 +930,7 @@ xwl_present_pixmap(WindowPtr window,
                    present_notify_ptr notifies,
                    int num_notifies)
 {
+    static uint64_t xwl_present_event_id;
     uint64_t                    ust = 0;
     uint64_t                    target_msc;
     uint64_t                    crtc_msc = 0;
@@ -981,7 +996,7 @@ xwl_present_pixmap(WindowPtr window,
         return BadAlloc;
     }
 
-    vblank->event_id = (uintptr_t)event;
+    vblank->event_id = ++xwl_present_event_id;
 
     /* Xwayland presentations always complete (at least) one frame after they
      * are executed
