@@ -1,6 +1,7 @@
 xwayland (2:23.2.0-1) UNRELEASED; urgency=medium
 
   * New upstream release.
+  * patches: Refreshed.
 
  -- Timo Aaltonen <tjaalton@debian.org>  Tue, 13 Jun 2023 15:53:22 +0300
 
