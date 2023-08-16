@@ -1,10 +1,10 @@
-xwayland (2:23.2.0-1) UNRELEASED; urgency=medium
+xwayland (2:23.2.0-1) unstable; urgency=medium
 
   * New upstream release.
   * patches: Refreshed.
   * control: Bump x11proto-dev depends.
 
- -- Timo Aaltonen <tjaalton@debian.org>  Tue, 13 Jun 2023 15:53:22 +0300
+ -- Timo Aaltonen <tjaalton@debian.org>  Wed, 16 Aug 2023 15:27:59 +0300
 
 xwayland (2:23.1.1-1) experimental; urgency=medium
 
