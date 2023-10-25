@@ -3,10 +3,10 @@ project('xwayland', 'c',
             'buildtype=debugoptimized',
             'c_std=gnu99',
         ],
-        version: '23.2.1',
+        version: '23.2.2',
         meson_version: '>= 0.52.0',
 )
-release_date = '2023-09-20'
+release_date = '2023-10-25'
 
 add_project_arguments('-DHAVE_DIX_CONFIG_H', language: ['c', 'objc'])
 cc = meson.get_compiler('c')
@@ -94,7 +94,7 @@ xshmfence_dep = dependency('xshmfence', version: '>= 1.1', required: false)
 xwaylandproto_dep = dependency('xwaylandproto', version: '>= 1.0', fallback: ['xorgproto', 'ext_xorgproto'], required: false)
 
 pixman_dep = dependency('pixman-1')
-libbsd_dep = dependency('libbsd', required: false)
+libbsd_dep = dependency('libbsd-overlay', required: false)
 xkbcomp_dep = dependency('xkbcomp', required: false)
 xkbfile_dep = dependency('xkbfile')
 xfont2_dep = dependency('xfont2', version: '>= 2.0')
