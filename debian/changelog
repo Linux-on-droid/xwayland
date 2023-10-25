@@ -4,6 +4,7 @@ xwayland (2:23.2.2-1) UNRELEASED; urgency=medium
     - CVE-2023-5367
     - CVE-2023-5380
     - CVE-2023-5574
+  * control: Add libdecor-0-dev to build-depends. (Closes: #1054529)
 
  -- Timo Aaltonen <tjaalton@debian.org>  Wed, 25 Oct 2023 10:46:26 +0300
 

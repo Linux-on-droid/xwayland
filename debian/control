@@ -8,6 +8,7 @@ Build-Depends:
  meson,
  pkg-config,
  quilt,
+ libdecor-0-dev,
  libdrm-dev (>= 2.4.89),
  libepoxy-dev,
  libgcrypt-dev,
