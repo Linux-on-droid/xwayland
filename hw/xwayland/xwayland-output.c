@@ -601,6 +601,7 @@ static void
 apply_output_change(struct xwl_output *xwl_output)
 {
     struct xwl_screen *xwl_screen = xwl_output->xwl_screen;
+    struct xwl_window *xwl_window;
     struct xwl_output *it;
     int mode_width, mode_height, count;
     int width = 0, height = 0, has_this_output = 0;
@@ -658,6 +659,15 @@ apply_output_change(struct xwl_output *xwl_output)
         update_screen_size(xwl_screen, width, height);
     else
         RRTellChanged(xwl_screen->screen);
+
+    /* If running rootful and fullscreen, make sure to match the new setup */
+    if (xwl_screen->fullscreen) {
+        /* The root window may not yet be created */
+        if (xwl_screen->screen->root) {
+            xwl_window = xwl_window_get(xwl_screen->screen->root);
+            xwl_window_rootful_update_fullscreen(xwl_window, xwl_output);
+        }
+    }
 }
 
 static void
@@ -673,6 +683,7 @@ xwl_output_set_name(struct xwl_output *xwl_output, const char *name)
     }
 
     snprintf(xwl_output->randr_output->name, MAX_OUTPUT_NAME, "%s", name);
+    xwl_output->randr_output->nameLength = strlen(xwl_output->randr_output->name);
 }
 
 static void
@@ -836,9 +847,6 @@ xwl_output_create(struct xwl_screen *xwl_screen, uint32_t id,
     xwl_output->xwl_screen = xwl_screen;
 
     if (with_xrandr) {
-        snprintf(name, MAX_OUTPUT_NAME, "XWAYLAND%d",
-                 xwl_screen_get_next_output_serial(xwl_screen));
-
         xwl_output->randr_crtc = RRCrtcCreate(xwl_screen->screen, xwl_output);
         if (!xwl_output->randr_crtc) {
             ErrorF("Failed creating RandR CRTC\n");
@@ -846,12 +854,17 @@ xwl_output_create(struct xwl_screen *xwl_screen, uint32_t id,
         }
         RRCrtcSetRotations (xwl_output->randr_crtc, ALL_ROTATIONS);
 
+        /* Allocate MAX_OUTPUT_NAME data for the output name, all filled with zeros */
         xwl_output->randr_output = RROutputCreate(xwl_screen->screen, name,
                                                   MAX_OUTPUT_NAME, xwl_output);
         if (!xwl_output->randr_output) {
             ErrorF("Failed creating RandR Output\n");
             goto err;
         }
+        /* Set the default output name to a sensible value */
+        snprintf(name, MAX_OUTPUT_NAME, "XWAYLAND%d",
+                 xwl_screen_get_next_output_serial(xwl_screen));
+        xwl_output_set_name(xwl_output, name);
         xwl_output_set_emulated(xwl_output);
 
         RRCrtcGammaSetSize(xwl_output->randr_crtc, 256);

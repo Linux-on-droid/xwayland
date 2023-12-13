@@ -3,10 +3,10 @@ project('xwayland', 'c',
             'buildtype=debugoptimized',
             'c_std=gnu99',
         ],
-        version: '23.2.2',
+        version: '23.2.3',
         meson_version: '>= 0.52.0',
 )
-release_date = '2023-10-25'
+release_date = '2023-12-13'
 
 add_project_arguments('-DHAVE_DIX_CONFIG_H', language: ['c', 'objc'])
 cc = meson.get_compiler('c')
@@ -476,7 +476,10 @@ glx_inc = include_directories('glx')
 
 top_dir_inc = include_directories('.')
 
-serverconfigdir = join_paths(get_option('prefix'), get_option('libdir'), 'xorg')
+serverconfigdir = get_option('serverconfigdir')
+if serverconfigdir == ''
+    serverconfigdir = join_paths(get_option('prefix'), get_option('libdir'), 'xorg')
+endif
 
 manpage_config = configuration_data()
 manpage_config.set('vendorversion', '"xorg-server @0@" "X Version 11"'.format(meson.project_version()))
