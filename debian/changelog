@@ -1,10 +1,10 @@
-xwayland (2:23.2.3-1) UNRELEASED; urgency=medium
+xwayland (2:23.2.3-1) unstable; urgency=medium
 
   * New upstream release.
     - CVE-2023-6377
     - CVE-2023-6478
 
- -- Timo Aaltonen <tjaalton@debian.org>  Wed, 13 Dec 2023 10:27:30 +0200
+ -- Timo Aaltonen <tjaalton@debian.org>  Wed, 13 Dec 2023 10:35:39 +0200
 
 xwayland (2:23.2.2-1) unstable; urgency=medium
 
