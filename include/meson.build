@@ -124,6 +124,7 @@ conf_data.set('HAVE_FNMATCH_H', cc.has_header('fnmatch.h') ? '1' : false)
 conf_data.set('HAVE_STDLIB_H', cc.has_header('stdlib.h') ? '1' : false)
 conf_data.set('HAVE_STRING_H', cc.has_header('string.h') ? '1' : false)
 conf_data.set('HAVE_STRINGS_H', cc.has_header('strings.h') ? '1' : false)
+conf_data.set('HAVE_SYS_UCRED_H', cc.has_header('sys/ucred.h') ? '1' : false)
 conf_data.set('HAVE_SYS_UTSNAME_H', cc.has_header('sys/utsname.h') ? '1' : false)
 conf_data.set('HAVE_SYS_SYSMACROS_H', cc.has_header('sys/sysmacros.h') ? '1' : false)
 
@@ -164,6 +165,7 @@ conf_data.set('HAVE_TIMINGSAFE_MEMCMP', cc.has_function('timingsafe_memcmp') ? '
 conf_data.set('HAVE_VASPRINTF', cc.has_function('vasprintf') ? '1' : false)
 conf_data.set('HAVE_VSNPRINTF', cc.has_function('vsnprintf') ? '1' : false)
 conf_data.set('HAVE_WALKCONTEXT', cc.has_function('walkcontext') ? '1' : false)
+conf_data.set('HAVE_XUCRED_CR_PID', cc.has_member('struct xucred', 'cr_pid', prefix : '#include <sys/ucred.h>') ? '1' : false)
 
 conf_data.set('BUSFAULT', conf_data.get('HAVE_SIGACTION'))
 

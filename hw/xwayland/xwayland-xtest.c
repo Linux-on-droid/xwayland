@@ -300,7 +300,8 @@ setup_oeffis(struct xwl_ei_client *xwl_ei_client)
     SetNotifyFd(xwl_ei_client->oeffis_fd, xwl_handle_oeffis_event,
         X_NOTIFY_READ, xwl_ei_client);
 
-    oeffis_create_session(xwl_ei_client->oeffis, OEFFIS_DEVICE_ALL_DEVICES);
+    oeffis_create_session(xwl_ei_client->oeffis,
+                          OEFFIS_DEVICE_KEYBOARD | OEFFIS_DEVICE_POINTER);
 
     return true;
 #else
@@ -646,6 +647,9 @@ xwayland_xtest_send_events(DeviceIntPtr dev,
     struct xwl_ei_client *xwl_ei_client;
     bool accept = false;
 
+    if (!IsXTestDevice(dev, NULL))
+        return;
+
     client = GetCurrentClient();
     xwl_ei_client = get_xwl_ei_client(client);
     if (!xwl_ei_client) {
@@ -914,9 +918,7 @@ xwayland_override_xtest(void)
     DeviceIntPtr d;
 
     nt_list_for_each_entry(d, inputInfo.devices, next) {
-        if (IsXTestDevice(d, NULL)) {
-            xwayland_override_events_proc(d);
-        }
+        xwayland_override_events_proc(d);
     }
 }
 
@@ -926,8 +928,6 @@ xwayland_restore_xtest(void)
     DeviceIntPtr d;
 
     nt_list_for_each_entry(d, inputInfo.devices, next) {
-        if (IsXTestDevice(d, NULL)) {
-            xwayland_restore_events_proc(d);
-        }
+        xwayland_restore_events_proc(d);
     }
 }

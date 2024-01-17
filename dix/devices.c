@@ -283,6 +283,8 @@ AddInputDevice(ClientPtr client, DeviceProc deviceProc, Bool autoStart)
     dev->deviceGrab.DeactivateGrab = DeactivateKeyboardGrab;
     dev->deviceGrab.sync.event = calloc(1, sizeof(InternalEvent));
 
+    dev->sendEventsProc = XTestDeviceSendEvents;
+
     XkbSetExtension(dev, ProcessKeyboardEvent);
 
     dev->coreEvents = TRUE;
@@ -451,14 +453,20 @@ DisableDevice(DeviceIntPtr dev, BOOL sendevent)
 {
     DeviceIntPtr *prev, other;
     BOOL enabled;
+    BOOL dev_in_devices_list = FALSE;
     int flags[MAXDEVICES] = { 0 };
 
     if (!dev->enabled)
         return TRUE;
 
-    for (prev = &inputInfo.devices;
-         *prev && (*prev != dev); prev = &(*prev)->next);
-    if (*prev != dev)
+    for (other = inputInfo.devices; other; other = other->next) {
+        if (other == dev) {
+            dev_in_devices_list = TRUE;
+            break;
+        }
+    }
+
+    if (!dev_in_devices_list)
         return FALSE;
 
     TouchEndPhysicallyActiveTouches(dev);
@@ -470,6 +478,13 @@ DisableDevice(DeviceIntPtr dev, BOOL sendevent)
     /* float attached devices */
     if (IsMaster(dev)) {
         for (other = inputInfo.devices; other; other = other->next) {
+            if (!IsMaster(other) && GetMaster(other, MASTER_ATTACHED) == dev) {
+                AttachDevice(NULL, other, NULL);
+                flags[other->id] |= XISlaveDetached;
+            }
+        }
+
+        for (other = inputInfo.off_devices; other; other = other->next) {
             if (!IsMaster(other) && GetMaster(other, MASTER_ATTACHED) == dev) {
                 AttachDevice(NULL, other, NULL);
                 flags[other->id] |= XISlaveDetached;
@@ -508,6 +523,9 @@ DisableDevice(DeviceIntPtr dev, BOOL sendevent)
 
     LeaveWindow(dev);
     SetFocusOut(dev);
+
+    for (prev = &inputInfo.devices;
+         *prev && (*prev != dev); prev = &(*prev)->next);
 
     *prev = dev->next;
     dev->next = inputInfo.off_devices;
@@ -1069,6 +1087,11 @@ CloseDownDevices(void)
             dev->master = NULL;
     }
 
+    for (dev = inputInfo.off_devices; dev; dev = dev->next) {
+        if (!IsMaster(dev) && !IsFloating(dev))
+            dev->master = NULL;
+    }
+
     CloseDeviceList(&inputInfo.devices);
     CloseDeviceList(&inputInfo.off_devices);
 
@@ -1326,6 +1349,7 @@ InitValuatorClassDeviceStruct(DeviceIntPtr dev, int numAxes, Atom *labels,
     ValuatorClassPtr valc;
 
     BUG_RETURN_VAL(dev == NULL, FALSE);
+    BUG_RETURN_VAL(numAxes == 0, FALSE);
 
     if (numAxes > MAX_VALUATORS) {
         LogMessage(X_WARNING,
