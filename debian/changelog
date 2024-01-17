@@ -1,3 +1,15 @@
+xwayland (2:23.2.4-1) unstable; urgency=medium
+
+  * New upstream release
+    - CVE-2023-6816
+    - CVE-2024-0229
+    - CVE-2024-21885
+    - CVE-2024-21886
+    - CVE-2024-0408
+    - CVE-2024-0409
+
+ -- Julien Cristau <jcristau@debian.org>  Wed, 17 Jan 2024 11:20:05 +0100
+
 xwayland (2:23.2.3-1) unstable; urgency=medium
 
   * New upstream release.
