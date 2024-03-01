@@ -15,6 +15,7 @@ Build-Depends:
  libgbm-dev,
  libnvidia-egl-wayland-dev,
  libpixman-1-dev,
+ libtirpc-dev,
  libxcvt-dev,
  libxfont-dev,
  libxkbfile-dev,
