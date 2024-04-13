@@ -1,5 +1,9 @@
-xwayland (2:23.2.4-2) UNRELEASED; urgency=medium
+xwayland (2:23.2.6-1) UNRELEASED; urgency=medium
 
+  * New upstream release.
+    - CVE-2024-31080
+    - CVE-2024-31081
+    - CVE-2024-31083
   * control: Add libtirpc-dev to build-depends. (Closes: #1065184)
 
  -- Timo Aaltonen <tjaalton@debian.org>  Fri, 01 Mar 2024 19:40:18 +0200
