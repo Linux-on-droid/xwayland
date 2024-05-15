@@ -1502,6 +1502,8 @@ ensure_surface_for_window(WindowPtr window)
             xwl_screen->tearing_control_manager, xwl_window->surface);
     }
 
+    xwl_window_set_input_region(xwl_window, wInputShape(window));
+
     return xwl_window;
 
 err:
@@ -1809,7 +1811,28 @@ xwl_config_notify(WindowPtr window,
     xwl_screen->ConfigNotify = screen->ConfigNotify;
     screen->ConfigNotify = xwl_config_notify;
 
-    if (size_changed && xwl_window) {
+    return ret;
+}
+
+void
+xwl_resize_window(WindowPtr window,
+                  int x, int y,
+                  unsigned int width, unsigned int height,
+                  WindowPtr sib)
+{
+    ScreenPtr screen = window->drawable.pScreen;
+    struct xwl_screen *xwl_screen;
+    struct xwl_window *xwl_window;
+
+    xwl_screen = xwl_screen_get(screen);
+    xwl_window = xwl_window_from_window(window);
+
+    screen->ResizeWindow = xwl_screen->ResizeWindow;
+    screen->ResizeWindow(window, x, y, width, height, sib);
+    xwl_screen->ResizeWindow = screen->ResizeWindow;
+    screen->ResizeWindow = xwl_resize_window;
+
+    if (xwl_window) {
         if (xwl_window_get(window) || xwl_window_is_toplevel(window))
             xwl_window_check_resolution_change_emulation(xwl_window);
         if (window == screen->root) {
@@ -1824,8 +1847,6 @@ xwl_config_notify(WindowPtr window,
             xwl_window_check_fractional_scale_viewport(xwl_window, width, height);
         }
     }
-
-    return ret;
 }
 
 void
@@ -1969,6 +1990,34 @@ xwl_window_post_damage(struct xwl_window *xwl_window)
 
     xwl_window_create_frame_callback(xwl_window);
     DamageEmpty(window_get_damage(xwl_window->surface_window));
+}
+
+void
+xwl_window_set_input_region(struct xwl_window *xwl_window,
+                            RegionPtr input_shape)
+{
+    struct wl_region *region;
+    BoxPtr box;
+    int i;
+
+    if (!input_shape) {
+        wl_surface_set_input_region(xwl_window->surface, NULL);
+        return;
+    }
+
+    region = wl_compositor_create_region(xwl_window->xwl_screen->compositor);
+    box = RegionRects(input_shape);
+
+    for (i = 0; i < RegionNumRects(input_shape); ++i, ++box) {
+        wl_region_add(region,
+                      box->x1,
+                      box->y1,
+                      box->x2 - box->x1,
+                      box->y2 - box->y1);
+    }
+
+    wl_surface_set_input_region(xwl_window->surface, region);
+    wl_region_destroy(region);
 }
 
 Bool

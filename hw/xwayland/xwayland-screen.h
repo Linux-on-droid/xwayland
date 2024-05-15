@@ -78,8 +78,10 @@ struct xwl_screen {
     XYToWindowProcPtr XYToWindow;
     SetWindowPixmapProcPtr SetWindowPixmap;
     ChangeWindowAttributesProcPtr ChangeWindowAttributes;
+    ResizeWindowProcPtr ResizeWindow;
     MoveWindowProcPtr MoveWindow;
     SourceValidateProcPtr SourceValidate;
+    SetShapeProcPtr SetShape;
 
     int (*GrabServer) (ClientPtr client);
     int (*UngrabServer) (ClientPtr client);

@@ -43,6 +43,8 @@
                        RR_Reflect_X  | \
                        RR_Reflect_Y)
 
+#define MAX_OUTPUT_NAME 256
+
 struct xwl_output {
     struct xorg_list link;
     struct xwl_screen *xwl_screen;
@@ -65,6 +67,7 @@ struct xwl_output {
     struct wp_drm_lease_connector_v1 *lease_connector;
     struct xwl_drm_lease *lease;
     struct xwl_drm_lease_device *lease_device;
+    Bool withdrawn_connector;
 };
 
 /* Per client per output emulated randr/vidmode resolution info. */
@@ -77,6 +80,8 @@ struct xwl_emulated_mode {
 };
 
 Bool xwl_screen_init_output(struct xwl_screen *xwl_screen);
+
+void xwl_output_set_name(struct xwl_output *xwl_output, const char *name);
 
 Bool xwl_screen_init_randr_fixed(struct xwl_screen *xwl_screen);
 
