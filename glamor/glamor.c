@@ -661,7 +661,7 @@ glamor_init(ScreenPtr screen, unsigned int flags)
         glamor_egl_screen_init(screen, &glamor_priv->ctx);
     }
 
-    glamor_make_current(glamor_priv);
+    glamor_block_handler(screen);
 
     if (!epoxy_is_desktop_gl())
         glamor_priv->is_gles = TRUE;
@@ -1014,7 +1014,7 @@ _glamor_fds_from_pixmap(ScreenPtr screen, PixmapPtr pixmap, int *fds,
                         uint32_t *strides, uint32_t *offsets,
                         CARD32 *size, uint64_t *modifier)
 {
-#ifdef GLAMOR_HAS_GBM
+#if 0
     glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
     glamor_screen_private *glamor_priv =
         glamor_get_screen_private(pixmap->drawable.pScreen);
@@ -1116,6 +1116,5 @@ glamor_finish(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
 
-    glamor_make_current(glamor_priv);
-    glFinish();
+    glamor_block_handler(screen);
 }

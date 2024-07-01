@@ -233,7 +233,7 @@ xwl_close_screen(ScreenPtr screen)
     struct xwl_output *xwl_output, *next_xwl_output;
     struct xwl_seat *xwl_seat, *next_xwl_seat;
     struct xwl_wl_surface *xwl_wl_surface, *xwl_wl_surface_next;
-#ifdef XWL_HAS_GLAMOR
+#if 0
     xwl_dmabuf_feedback_destroy(&xwl_screen->default_feedback);
 #endif
     DeleteCallback(&PropertyStateCallback, xwl_property_callback, screen);
@@ -978,8 +978,8 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
         return FALSE;
     }
 
-#ifdef XWL_HAS_GLAMOR
-    if (xwl_screen->glamor && !xwl_glamor_init_gbm(xwl_screen)) {
+#if 1
+    if (xwl_screen->glamor && !xwl_glamor_init_hybris(xwl_screen)) {
         ErrorF("xwayland glamor: failed to setup GBM backend, falling back to sw accel\n");
         xwl_screen->glamor = 0;
     }

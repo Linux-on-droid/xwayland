@@ -370,7 +370,7 @@ xwl_window_realloc_pixmap(struct xwl_window *xwl_window)
     screen->DestroyPixmap(window_pixmap);
 }
 
-#ifdef XWL_HAS_GLAMOR
+#if 0
 static Bool
 xwl_window_buffers_set_syncpts(struct xwl_window_buffer *xwl_window_buffer)
 {
@@ -477,7 +477,7 @@ xwl_window_swap_pixmap(struct xwl_window *xwl_window)
     /* Hold a reference on the buffer until it's released by the compositor */
     xwl_window_buffer->refcnt++;
 
-#ifdef XWL_HAS_GLAMOR
+#if 0
     if (!xwl_glamor_supports_implicit_sync(xwl_screen)) {
         if (xwl_screen->explicit_sync && xwl_window_buffers_set_syncpts(xwl_window_buffer)) {
             implicit_sync = FALSE;

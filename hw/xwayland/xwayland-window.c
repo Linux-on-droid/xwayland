@@ -47,9 +47,9 @@
 #include "xwayland-window.h"
 #include "xwayland-window-buffers.h"
 #include "xwayland-shm.h"
-#include "xwayland-dmabuf.h"
+//#include "xwayland-dmabuf.h"
 
-#include "linux-dmabuf-unstable-v1-client-protocol.h"
+//#include "linux-dmabuf-unstable-v1-client-protocol.h"
 #include "tearing-control-v1-client-protocol.h"
 #include "viewporter-client-protocol.h"
 #include "xdg-shell-client-protocol.h"
@@ -1460,7 +1460,7 @@ ensure_surface_for_window(WindowPtr window)
     if (!xwl_screen->rootless && !xwl_create_root_surface(xwl_window))
         goto err;
 
-#ifdef XWL_HAS_GLAMOR
+#if 0
     if (xwl_screen->dmabuf_protocol_version >= 4)
         xwl_dmabuf_setup_feedback_for_window(xwl_window);
 #endif
@@ -1674,7 +1674,7 @@ xwl_unrealize_window(WindowPtr window)
 
     if (xwl_window_has_viewport_enabled(xwl_window))
         xwl_window_disable_viewport(xwl_window);
-#ifdef XWL_HAS_GLAMOR
+#if 0
     xwl_dmabuf_feedback_destroy(&xwl_window->feedback);
 
 #ifdef GLAMOR_HAS_GBM

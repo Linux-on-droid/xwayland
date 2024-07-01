@@ -73,7 +73,7 @@ srcs += client_header.process(gestures_xml)
 srcs += client_header.process(tablet_xml)
 srcs += client_header.process(kbgrab_xml)
 srcs += client_header.process(xdg_output_xml)
-srcs += client_header.process(dmabuf_xml)
+#srcs += client_header.process(dmabuf_xml)
 srcs += client_header.process(viewporter_xml)
 srcs += client_header.process(xdg_shell_xml)
 srcs += client_header.process(drm_lease_xml)
@@ -88,7 +88,7 @@ srcs += code.process(gestures_xml)
 srcs += code.process(tablet_xml)
 srcs += code.process(kbgrab_xml)
 srcs += code.process(xdg_output_xml)
-srcs += code.process(dmabuf_xml)
+#srcs += code.process(dmabuf_xml)
 srcs += code.process(viewporter_xml)
 srcs += code.process(xdg_shell_xml)
 srcs += code.process(drm_lease_xml)
@@ -111,10 +111,7 @@ xwayland_glamor = []
 if build_xwayland_glamor
     srcs += [
               'xwayland-glamor.c',
-              'xwayland-dmabuf.h',
-              'xwayland-dmabuf.c',
-              'xwayland-glamor-gbm.c',
-              'xwayland-glamor-gbm.h'
+              'xwayland-glamor-hybris.c'
             ]
 
     if build_xv
@@ -123,6 +120,8 @@ if build_xwayland_glamor
 
     srcs += client_header.process('drm.xml')
     srcs += code.process('drm.xml')
+    srcs += client_header.process('wayland-android.xml')
+    srcs += code.process('wayland-android.xml')
     xwayland_dep += gbm_dep
     xwayland_glamor += glamor
 endif
@@ -140,6 +139,10 @@ if have_libdecor
     xwayland_dep += libdecor_dep
 endif
 
+cc = meson.get_compiler('c')
+drihybris_dep = cc.find_library('drihybris', required: true)
+hybris_dep = dependency('hybris-egl-platform', required: true)
+
 xwayland_server = executable(
     'Xwayland',
     srcs,
@@ -148,6 +151,8 @@ xwayland_server = executable(
         common_dep,
         xwayland_dep,
         xwaylandproto_dep,
+        hybris_dep,
+        drihybris_dep
     ],
     link_with: [
         libxserver_main,
@@ -158,7 +163,7 @@ xwayland_server = executable(
         libxserver_xkb_stubs,
         libxserver_xi_stubs,
         libxserver_glx,
-        libglxvnd,
+        libglxvnd
     ],
     install: true,
     install_dir: xwayland_path

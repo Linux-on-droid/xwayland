@@ -28,6 +28,9 @@ Build-Depends:
  xfonts-utils,
  xtrans-dev,
  wayland-protocols,
+ drihybris-dev,
+ drihybris,
+ libhybris-dev,
 Standards-Version: 4.6.0
 Vcs-Git: https://salsa.debian.org/xorg-team/wayland/xwayland.git
 Vcs-Browser: https://salsa.debian.org/xorg-team/wayland/xwayland

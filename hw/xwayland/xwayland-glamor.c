@@ -37,12 +37,13 @@
 #endif
 
 #include "drm-client-protocol.h"
-#include "linux-dmabuf-unstable-v1-client-protocol.h"
-#include "linux-drm-syncobj-v1-client-protocol.h"
+//#include "linux-dmabuf-unstable-v1-client-protocol.h"
+//#include "linux-drm-syncobj-v1-client-protocol.h"
 
-#include "xwayland-dmabuf.h"
+//#include "xwayland-dmabuf.h"
 #include "xwayland-glamor.h"
-#include "xwayland-glamor-gbm.h"
+//#include "xwayland-glamor-gbm.h"
+#include "xwayland-glamor-hybris.h"
 #include "xwayland-present.h"
 #include "xwayland-screen.h"
 #include "xwayland-window.h"
@@ -110,22 +111,24 @@ xwl_glamor_init_wl_registry(struct xwl_screen *xwl_screen,
                             uint32_t id, const char *interface,
                             uint32_t version)
 {
-    if (strcmp(interface, wl_drm_interface.name) == 0)
+    LogMessageVerb(X_INFO, 3, "glamor: wl registry interface: %s\n", interface);
+    xwl_screen_set_hybris_interface(xwl_screen, id, version);
+ /*   if (strcmp(interface, wl_drm_interface.name) == 0)
         xwl_screen_set_drm_interface(xwl_screen, id, version);
     else if (strcmp(interface, zwp_linux_dmabuf_v1_interface.name) == 0)
         xwl_screen_set_dmabuf_interface(xwl_screen, id, version);
     else if (strcmp(interface, wp_linux_drm_syncobj_manager_v1_interface.name) == 0)
-        xwl_screen_set_syncobj_interface(xwl_screen, id, version);
+        xwl_screen_set_syncobj_interface(xwl_screen, id, version);*/
 }
 
 static Bool
 xwl_glamor_has_wl_interfaces(struct xwl_screen *xwl_screen)
 {
-    if (!xwl_glamor_has_wl_drm(xwl_screen) &&
-        xwl_screen->dmabuf_protocol_version < 4) {
-        LogMessageVerb(X_INFO, 3, "glamor: 'wl_drm' not supported and linux-dmabuf v4 not supported\n");
-        return FALSE;
-    }
+    //if (!xwl_glamor_has_wl_drm(xwl_screen) &&
+    //    xwl_screen->dmabuf_protocol_version < 4) {
+    //    LogMessageVerb(X_INFO, 3, "glamor: 'wl_drm' not supported and linux-dmabuf v4 not supported\n");
+    //    return FALSE;
+    //}
 
     return TRUE;
 }
@@ -229,7 +232,7 @@ xwl_glamor_init(struct xwl_screen *xwl_screen)
         return FALSE;
     }
 
-    if (!xwl_glamor_gbm_init_egl(xwl_screen)) {
+    if (!xwl_glamor_hybris_init_egl(xwl_screen)) {
         ErrorF("EGL setup failed, disabling glamor\n");
         return FALSE;
     }
@@ -239,7 +242,7 @@ xwl_glamor_init(struct xwl_screen *xwl_screen)
         return FALSE;
     }
 
-    if (!xwl_glamor_gbm_init_screen(xwl_screen)) {
+    if (!xwl_glamor_hybris_init_screen(xwl_screen)) {
         ErrorF("EGL backend init_screen() failed, disabling glamor\n");
         return FALSE;
     }

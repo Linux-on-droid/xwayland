@@ -328,7 +328,7 @@ xwl_present_free_event(struct xwl_present_event *event)
 static void
 xwl_present_free_idle_vblank(present_vblank_ptr vblank)
 {
-#ifdef XWL_HAS_GLAMOR
+#if 0
     if (vblank->release_syncobj) {
         /* transfer implicit fence to release syncobj */
         int fence_fd = xwl_glamor_dmabuf_export_sync_file(vblank->pixmap);
@@ -507,7 +507,7 @@ xwl_present_buffer_release(void *data)
 
     vblank = &event->vblank;
 
-#ifdef XWL_HAS_GLAMOR
+#if 0
     if (vblank->release_syncobj) {
         /* transfer implicit fence to release syncobj */
         int fence_fd = xwl_glamor_dmabuf_export_sync_file(vblank->pixmap);
@@ -881,7 +881,7 @@ xwl_present_flip(present_vblank_ptr vblank, RegionPtr damage)
 
     event->pixmap = pixmap;
 
-#ifdef XWL_HAS_GLAMOR
+#if 0
     if (vblank->acquire_syncobj && vblank->release_syncobj) {
         if (xwl_window->xwl_screen->explicit_sync) {
             xwl_glamor_dri3_syncobj_passthrough(xwl_window,

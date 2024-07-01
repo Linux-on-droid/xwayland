@@ -35,6 +35,7 @@
 
 #include "xwayland-types.h"
 #include "xwayland-glamor-gbm.h"
+#include "xwayland-glamor-hybris.h"
 #include "dri3.h"
 
 typedef enum _xwl_glamor_mode_flags{
@@ -47,6 +48,9 @@ typedef enum _xwl_glamor_mode_flags{
 #ifdef XWL_HAS_GLAMOR
 
 Bool xwl_glamor_init(struct xwl_screen *xwl_screen);
+
+Bool xwl_screen_set_hybris_interface(struct xwl_screen *xwl_screen,
+                             uint32_t id, uint32_t version);
 
 Bool xwl_screen_set_drm_interface(struct xwl_screen *xwl_screen,
                                   uint32_t id, uint32_t version);
