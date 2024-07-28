@@ -718,10 +718,6 @@ glamor_init(ScreenPtr screen, unsigned int flags)
             goto fail;
         }
 
-        if (!epoxy_has_gl_extension("GL_OES_texture_border_clamp")) {
-            ErrorF("GL_OES_texture_border_clamp required\n");
-            goto fail;
-        }
     }
 
     if (!epoxy_has_gl_extension("GL_ARB_vertex_array_object") &&
