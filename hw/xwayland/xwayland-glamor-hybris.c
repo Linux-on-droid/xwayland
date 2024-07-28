@@ -83,6 +83,7 @@ xwl_glamor_hybris_create_pixmap_for_native_buffer(ScreenPtr screen,  EGLClientBu
     PixmapPtr pixmap;
     struct xwl_pixmap *xwl_pixmap;
     struct xwl_screen *xwl_screen = xwl_screen_get(screen);
+    const GLint swizzle[] = {GL_BLUE, GL_GREEN, GL_RED, GL_ALPHA};
 
     xwl_pixmap = malloc(sizeof *xwl_pixmap);
     if (xwl_pixmap == NULL)
@@ -114,6 +115,8 @@ xwl_glamor_hybris_create_pixmap_for_native_buffer(ScreenPtr screen,  EGLClientBu
     glBindTexture(GL_TEXTURE_2D, xwl_pixmap->texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
 
     glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, xwl_pixmap->image);
     if (eglGetError() != EGL_SUCCESS)
@@ -243,7 +246,7 @@ xwl_glamor_pixmap_get_wl_buffer(PixmapPtr pixmap)
         android_wlegl_handle_add_fd(wlegl_handle, fds[i]);
     }
 
-    xwl_pixmap->buffer = android_wlegl_create_buffer(glamor_egl->android_wlegl, width, height, xwl_pixmap->stride, xwl_pixmap->format, HYBRIS_USAGE_HW_RENDER, wlegl_handle);
+    xwl_pixmap->buffer = android_wlegl_create_buffer(glamor_egl->android_wlegl, width, height, xwl_pixmap->stride, xwl_pixmap->format, HYBRIS_USAGE_HW_TEXTURE, wlegl_handle);
     android_wlegl_handle_destroy(wlegl_handle);
 
     return xwl_pixmap->buffer;
@@ -302,8 +305,7 @@ xwl_glamor_hybris_init_egl(struct xwl_screen *xwl_screen)
         EGL_DEPTH_SIZE, 24,
         EGL_STENCIL_SIZE, 8,
         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-            EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-            EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
+        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
         EGL_NONE
     };
 
