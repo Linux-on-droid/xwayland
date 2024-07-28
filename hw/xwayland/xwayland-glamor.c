@@ -112,7 +112,8 @@ xwl_glamor_init_wl_registry(struct xwl_screen *xwl_screen,
                             uint32_t version)
 {
     LogMessageVerb(X_INFO, 3, "glamor: wl registry interface: %s\n", interface);
-    xwl_screen_set_hybris_interface(xwl_screen, id, version);
+    if (strcmp(interface, "android_wlegl") == 0)
+        xwl_screen_set_hybris_interface(xwl_screen, id, version);
  /*   if (strcmp(interface, wl_drm_interface.name) == 0)
         xwl_screen_set_drm_interface(xwl_screen, id, version);
     else if (strcmp(interface, zwp_linux_dmabuf_v1_interface.name) == 0)

@@ -82,6 +82,8 @@ xwl_glamor_hybris_create_pixmap_for_native_buffer(ScreenPtr screen,  EGLClientBu
 {
     PixmapPtr pixmap;
     struct xwl_pixmap *xwl_pixmap;
+    if (screen == NULL)
+       return NULL;
     struct xwl_screen *xwl_screen = xwl_screen_get(screen);
     const GLint swizzle[] = {GL_BLUE, GL_GREEN, GL_RED, GL_ALPHA};
 
@@ -484,7 +486,7 @@ xwl_glamor_create_pixmap_for_window(struct xwl_window *xwl_window)
                                                 m_usage,
                                                 m_format,
                                                 &stride, &buf);
-    return xwl_glamor_hybris_create_pixmap_for_native_buffer(xwl_screen,
+    return xwl_glamor_hybris_create_pixmap_for_native_buffer(xwl_screen->screen,
                                                  buf,
                                                  window->drawable.width + border_width,
                                                  window->drawable.height + border_width,
