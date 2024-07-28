@@ -199,7 +199,7 @@ xwl_glamor_hybris_destroy_pixmap(PixmapPtr pixmap)
         xwl_pixmap_set_private(pixmap, NULL);
     }
 
-    return fbDestroyPixmap(pixmap);
+    return glamor_destroy_pixmap(pixmap);
 }
 
 struct wl_buffer *
