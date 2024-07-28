@@ -223,6 +223,11 @@ glamor_create_pixmap(ScreenPtr screen, int w, int h, int depth,
     else
         pixmap = fbCreatePixmap(screen, 0, 0, depth, usage);
 
+    if (depth == 8 && usage != GLAMOR_CREATE_FBO_NO_FBO) {
+        ErrorF("Mali gpu can't support fbo with depth == 8, force set GLAMOR_CREATE_FBO_NO_FBO\n");
+        usage = GLAMOR_CREATE_FBO_NO_FBO;
+    }
+
     pixmap_priv = glamor_get_pixmap_private(pixmap);
 
     pixmap_priv->is_cbcr = (GLAMOR_CREATE_FORMAT_CBCR & usage) == GLAMOR_CREATE_FORMAT_CBCR;
