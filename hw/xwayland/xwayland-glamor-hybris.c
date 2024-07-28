@@ -165,9 +165,9 @@ xwl_glamor_hybris_create_pixmap(ScreenPtr screen,
 
         EGLClientBuffer buf;
         glamor_egl->eglHybrisCreateNativeBuffer(width, height,
-                                                m_usage,
-                                                m_format,
-                                                &stride, &buf);
+                                                HYBRIS_USAGE_HW_TEXTURE |
+                                                HYBRIS_USAGE_SW_READ_NEVER | HYBRIS_USAGE_SW_WRITE_NEVER,
+                                                m_format, &stride, &buf);
         pixmap = xwl_glamor_hybris_create_pixmap_for_native_buffer(screen, buf, width, height, depth, m_format, (uint32_t) stride);
         if (pixmap && xwl_screen->rootless && hint == CREATE_PIXMAP_USAGE_BACKING_PIXMAP) {
             glamor_clear_pixmap(pixmap);
